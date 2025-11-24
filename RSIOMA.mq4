@@ -1,16 +1,16 @@
 //+------------------------------------------------------------------+
 //|                                                       RSIOMA.mq4 |
-//|                             Copyright © 2004-2022, EarnForex.com |
+//|                                  Copyright © 2025, EarnForex.com |
 //|                                        https://www.earnforex.com |
-//|       Based on indicator by Kalenzo (bartlomiej.gorski@gmail.com |
-//|                                         http://www.fxservice.eu) |
+//|        Based on indicator by Kalenzo bartlomiej.gorski@gmail.com |
+//|                                          http://www.fxservice.eu |
 //+------------------------------------------------------------------+
-#property copyright "Copyright © 2004-2022, EarnForex.com"
-#property link      "https://www.earnforex.com/metatrader-indicators/RSIOMA/"
-#property version   "1.01"
+#property copyright "Copyright © 2025, EarnForex.com"
+#property link      "https://www.earnforex.com/indicators/RSIOMA/"
+#property version   "1.02"
 #property strict
 
-#property description "RSIOMA displays a Relative Strenfth Index built based on relative MA strength, instead of the normal Close values."
+#property description "RSIOMA displays a Relative Strength Index built based on relative MA strength, instead of the normal Close values."
 #property description "The thin line is the MA of RSIOMA."
 #property description "Main signal: RSIOMA crosses 20 from below or 80 from above."
 #property description "Auxiliary signal: RSIOMA starts rising below 20 or starts falling above 80."
@@ -64,6 +64,8 @@ input bool                 AuxiliaryAlerts     = false;
 input bool                 EnableNativeAlerts  = false;
 input bool                 EnableEmailAlerts   = false;
 input bool                 EnablePushAlerts    = false;
+input bool                 EnableSoundAlerts   = false;
+input string               SoundFile           = "alert.wav";
 input enum_candle_to_check TriggerCandle       = Previous;
 
 // Indicator buffers:
@@ -103,7 +105,7 @@ void OnInit()
     drawLine(MainTrendLong, "MainTrendLong", MainTrendLongColor);
     drawLine(MainTrendShort, "MainTrendShort", MainTrendShortColor);
     drawLine(BuyTrigger, "BuyTrigger", BuyTriggerColor);
-    drawLine(SellTrigger, "SellTrigger", SellTriggerColor );
+    drawLine(SellTrigger, "SellTrigger", SellTriggerColor);
 }
 
 int OnCalculate(const int rates_total,
@@ -216,19 +218,13 @@ int OnCalculate(const int rates_total,
             if ((RSIBuffer[TriggerCandle] < SellTrigger) && (RSIBuffer[TriggerCandle + 1] >= SellTrigger))
             {
                 Text = "RSIOMA: " + Symbol() + " - " + StringSubstr(EnumToString((ENUM_TIMEFRAMES)Period()), 7) + " - Crossed " + IntegerToString(SellTrigger) + " from above.";
-                if (EnableNativeAlerts) Alert(Text);
-                if (EnableEmailAlerts) SendMail("RSIOMA Alert", Text);
-                if (EnablePushAlerts) SendNotification(Text);
-                LastAlertTime = Time[0];
+                IssueAlerts(Text);
             }
             // Main Buy signal.
             if ((RSIBuffer[TriggerCandle] > BuyTrigger) && (RSIBuffer[TriggerCandle + 1] <= BuyTrigger))
             {
                 Text = "RSIOMA: " + Symbol() + " - " + StringSubstr(EnumToString((ENUM_TIMEFRAMES)Period()), 7) + " - Crossed " + IntegerToString(BuyTrigger) + " from below.";
-                if (EnableNativeAlerts) Alert(Text);
-                if (EnableEmailAlerts) SendMail("RSIOMA Alert", Text);
-                if (EnablePushAlerts) SendNotification(Text);
-                LastAlertTime = Time[0];
+                IssueAlerts(Text);
             }
         }
         if (AuxiliaryAlerts) // Histogram shows blue or pink color - reversal of RSIOMA below 20 or above 80 - trend change imminent.
@@ -237,19 +233,13 @@ int OnCalculate(const int rates_total,
             if ((sdn[TriggerCandle] == -10) && (sdn[TriggerCandle + 1] == 0))
             {
                 Text = "RSIOMA: " + Symbol() + " - " + StringSubstr(EnumToString((ENUM_TIMEFRAMES)Period()), 7) + " - Bearish reversal imminent.";
-                if (EnableNativeAlerts) Alert(Text);
-                if (EnableEmailAlerts) SendMail("RSIOMA Alert", Text);
-                if (EnablePushAlerts) SendNotification(Text);
-                LastAlertTime = Time[0];
+                IssueAlerts(Text);
             }
             // Auxiliary Buy signal.
             if ((sup[TriggerCandle] == -10) && (sup[TriggerCandle + 1] == 0))
             {
                 Text = "RSIOMA: " + Symbol() + " - " + StringSubstr(EnumToString((ENUM_TIMEFRAMES)Period()), 7) + " - Bullish reversal imminent.";
-                if (EnableNativeAlerts) Alert(Text);
-                if (EnableEmailAlerts) SendMail("RSIOMA Alert", Text);
-                if (EnablePushAlerts) SendNotification(Text);
-                LastAlertTime = Time[0];
+                IssueAlerts(Text);
             }
         }
     }
@@ -265,5 +255,14 @@ void drawLine(const double lvl, const string name, const color Col)
     ObjectSet(name, OBJPROP_COLOR, Col);
     ObjectSet(name, OBJPROP_WIDTH, 1);
     ObjectSet(name, OBJPROP_SELECTABLE, false);
+}
+
+void IssueAlerts(string text)
+{
+    if (EnableNativeAlerts) Alert(text);
+    if (EnableEmailAlerts) SendMail("RSIOMA Alert", text);
+    if (EnablePushAlerts) SendNotification(text);
+    if (EnableSoundAlerts) PlaySound(SoundFile);
+    LastAlertTime = Time[0];
 }
 //+------------------------------------------------------------------+
